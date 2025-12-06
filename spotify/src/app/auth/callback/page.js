@@ -11,7 +11,6 @@ export default function CallbackPage() {
   const hasProcessed = useRef(false);
 
   useEffect(() => {
-    // Prevenir ejecución duplicada
     if (hasProcessed.current) return;
 
     const code = searchParams.get('code');
@@ -28,7 +27,6 @@ export default function CallbackPage() {
       return;
     }
 
-    // Validar state para prevenir CSRF
     const savedState = localStorage.getItem('spotify_auth_state');
     if (!state || state !== savedState) {
       setError('Error de validación de seguridad (CSRF). Intenta iniciar sesión de nuevo.');
@@ -36,13 +34,10 @@ export default function CallbackPage() {
       return;
     }
 
-    // Limpiar state después de validar
     localStorage.removeItem('spotify_auth_state');
 
-    // Marcar como procesado
     hasProcessed.current = true;
 
-    // Intercambiar código por token
     const exchangeCodeForToken = async (code) => {
       try {
         const response = await fetch('/api/spotify-token', {
@@ -57,10 +52,8 @@ export default function CallbackPage() {
           throw new Error(data.error || 'Error al obtener token');
         }
 
-        // Guardar tokens
         saveTokens(data.access_token, data.refresh_token, data.expires_in);
 
-        // Redirigir al dashboard
         router.push('/dashboard');
 
       } catch (error) {
