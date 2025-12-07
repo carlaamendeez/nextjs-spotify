@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import styles from './GenreWidget.module.css';
+import styles from './GenreWidgets.css';
 
 const GENRES = [
   'rock', 'pop', 'jazz', 'hip-hop', 'electronic', 'classical', 

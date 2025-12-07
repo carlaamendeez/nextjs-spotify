@@ -87,7 +87,7 @@ export default function Home() {
       </div>
       
       <footer className="mt-12 text-center text-gray-500 text-sm">
-        <p>© 2024 Spotify Taste Mixer. Este proyecto usa la API de Spotify.</p>
+        <p>2024 Spotify Taste Mixer. Este proyecto usa la API de Spotify.</p>
         <p className="mt-1">No almacenamos tus datos de acceso.</p>
       </footer>
     </div>

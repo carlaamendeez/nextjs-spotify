@@ -6,6 +6,14 @@ export function generateAuthURL() {
   const clientId = process.env.NEXT_PUBLIC_SPOTIFY_CLIENT_ID;
   const redirectUri = process.env.NEXT_PUBLIC_REDIRECT_URI;
   
+  console.log("DEBUG - Client ID:", clientId ? "Definido" : "No definido");
+  console.log("DEBUG - Redirect URI:", redirectUri || "No definida");
+  
+  if (!redirectUri) {
+    console.error("ERROR: NEXT_PUBLIC_REDIRECT_URI no está definida");
+    return "#";
+  }
+  
   const scopes = [
     'user-read-private',
     'user-read-email',
@@ -20,15 +28,19 @@ export function generateAuthURL() {
     sessionStorage.setItem('spotify_auth_state', state);
   }
   
-  const authUrl = new URL('https://accounts.spotify.com/authorize');
-  authUrl.searchParams.append('client_id', clientId);
-  authUrl.searchParams.append('response_type', 'code');
-  authUrl.searchParams.append('redirect_uri', redirectUri);
-  authUrl.searchParams.append('scope', scopes.join(' '));
-  authUrl.searchParams.append('state', state);
-  authUrl.searchParams.append('show_dialog', 'false');
+  // Versión SIMPLE y que funciona
+  const params = new URLSearchParams();
+  params.append('client_id', clientId);
+  params.append('response_type', 'code');
+  params.append('redirect_uri', redirectUri); // SIN encodeURIComponent aquí
+  params.append('scope', scopes.join(' '));
+  params.append('state', state);
+  params.append('show_dialog', 'false');
   
-  return authUrl.toString();
+  const authUrl = `https://accounts.spotify.com/authorize?${params.toString()}`;
+  
+  console.log("DEBUG - URL generada:", authUrl);
+  return authUrl;
 }
 
 function generateRandomString(length) {

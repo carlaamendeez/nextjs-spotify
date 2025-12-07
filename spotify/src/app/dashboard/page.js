@@ -4,8 +4,8 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { getAccessToken, clearTokens } from '@/lib/auth';
-import GenreWidget from '@/components/widgets/GenreWidget';
-import styles from './dashboard.module.css';
+import GenreWidget from '@/components/widgets/GenreWidgets';
+import styles from './page.css';
 
 export default function Dashboard() {
   const [token, setToken] = useState('');
