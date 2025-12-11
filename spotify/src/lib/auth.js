@@ -27,12 +27,11 @@ export function generateAuthURL() {
   if (typeof window !== 'undefined') {
     sessionStorage.setItem('spotify_auth_state', state);
   }
-  
-  // Versión SIMPLE y que funciona
+
   const params = new URLSearchParams();
   params.append('client_id', clientId);
   params.append('response_type', 'code');
-  params.append('redirect_uri', redirectUri); // SIN encodeURIComponent aquí
+  params.append('redirect_uri', redirectUri); 
   params.append('scope', scopes.join(' '));
   params.append('state', state);
   params.append('show_dialog', 'false');

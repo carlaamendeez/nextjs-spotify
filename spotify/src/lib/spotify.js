@@ -3,7 +3,6 @@ export async function generatePlaylist(preferences) {
   const token = getAccessToken();
   let allTracks = [];
 
-  // 1. Obtener top tracks de artistas seleccionados
   for (const artist of artists) {
     const tracks = await fetch(
       `https://api.spotify.com/v1/artists/${artist.id}/top-tracks?market=US`,
@@ -15,7 +14,6 @@ export async function generatePlaylist(preferences) {
     allTracks.push(...data.tracks);
   }
 
-  // 2. Buscar por géneros
   for (const genre of genres) {
     const results = await fetch(
       `https://api.spotify.com/v1/search?type=track&q=genre:${genre}&limit=20`,
@@ -27,7 +25,6 @@ export async function generatePlaylist(preferences) {
     allTracks.push(...data.tracks.items);
   }
 
-  // 3. Filtrar por década
   if (decades.length > 0) {
     allTracks = allTracks.filter(track => {
       const year = new Date(track.album.release_date).getFullYear();
@@ -38,7 +35,6 @@ export async function generatePlaylist(preferences) {
     });
   }
 
-  // 4. Filtrar por popularidad
   if (popularity) {
     const [min, max] = popularity;
     allTracks = allTracks.filter(
@@ -46,7 +42,6 @@ export async function generatePlaylist(preferences) {
     );
   }
 
-  // 5. Eliminar duplicados y limitar a 30 canciones
   const uniqueTracks = Array.from(
     new Map(allTracks.map(track => [track.id, track])).values()
   ).slice(0, 30);

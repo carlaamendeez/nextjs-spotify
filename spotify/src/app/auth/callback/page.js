@@ -17,7 +17,7 @@ export default function CallbackPage() {
     const state = searchParams.get('state');
     const errorParam = searchParams.get('error');
 
-    // Debug: mostrar lo que recibimos
+    // Debug es para mostrar lo que recibimos
     console.log("DEBUG - Code recibido:", code);
     console.log("DEBUG - State recibido:", state);
     console.log("DEBUG - State en localStorage:", localStorage.getItem('spotify_auth_state'));
@@ -32,10 +32,9 @@ export default function CallbackPage() {
       return;
     }
 
-    // TEMPORAL: Comentar validación CSRF para probar
     console.log("NOTA: Validación CSRF desactivada temporalmente para pruebas");
     
-    // Limpiar el state
+    // para limpiar el state
     localStorage.removeItem('spotify_auth_state');
 
     hasProcessed.current = true;
@@ -61,7 +60,7 @@ export default function CallbackPage() {
           throw new Error(data.error || 'Error al obtener token');
         }
 
-        // Guardar tokens
+        // para guardar tokens
         saveTokens({
           access_token: data.access_token,
           refresh_token: data.refresh_token,

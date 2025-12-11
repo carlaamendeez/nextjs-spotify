@@ -51,7 +51,7 @@ export default function Home() {
         
         <div className="bg-gray-800/50 backdrop-blur-sm rounded-xl p-6 mb-8 border border-gray-700">
           <h2 className="text-xl font-semibold text-white mb-4">
-            ✨ Características principales
+            Características principales
           </h2>
           <ul className="text-gray-300 space-y-3 text-left">
             <li className="flex items-center">
