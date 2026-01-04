@@ -1,4 +1,3 @@
-// src/components/Header.jsx
 'use client';
 
 import { useRouter } from 'next/navigation';
