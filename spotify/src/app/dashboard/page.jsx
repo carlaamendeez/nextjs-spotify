@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation';
 
 import Header from '../../components/widgets/Header';
 import GenreWidgets from '../../components/widgets/GenreWidgets';
-
 import ArtistWidget from '../../components/widgets/ArtistWidget';
 import DecadeWidget from '../../components/widgets/DecadeWidget';
 import PopularityWidget from '../../components/widgets/PopularityWidget';
@@ -26,26 +25,27 @@ export default function DashboardPage() {
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
 
+  const [favoriteTracks, setFavoriteTracks] = useState([]);
+
+  const [previewTracks, setPreviewTracks] = useState([]);
+
   const router = useRouter();
 
+  // ===== USUARIO =====
   useEffect(() => {
     const fetchUser = async () => {
       const token = localStorage.getItem('spotify_access_token');
-
       if (!token) {
         router.push('/');
         return;
       }
 
-      const response = await fetch('https://api.spotify.com/v1/me', {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
+      const res = await fetch('https://api.spotify.com/v1/me', {
+        headers: { Authorization: `Bearer ${token}` }
       });
 
-      if (response.ok) {
-        const data = await response.json();
-        setUser(data);
+      if (res.ok) {
+        setUser(await res.json());
       } else {
         router.push('/');
       }
@@ -56,24 +56,44 @@ export default function DashboardPage() {
     fetchUser();
   }, [router]);
 
-  const handleGenreSelect = (genres) => {
+  // ===== FAVORITOS (localStorage) =====
+  useEffect(() => {
+    const stored = JSON.parse(
+      localStorage.getItem('favorite_tracks')
+    ) || [];
+    setFavoriteTracks(stored);
+  }, []);
+
+  const toggleFavoriteTrack = (trackId) => {
+    setFavoriteTracks(prev => {
+      const updated = prev.includes(trackId)
+        ? prev.filter(id => id !== trackId)
+        : [...prev, trackId];
+
+      localStorage.setItem(
+        'favorite_tracks',
+        JSON.stringify(updated)
+      );
+
+      return updated;
+    });
+  };
+
+  // ===== HANDLERS =====
+  const handleGenreSelect = (genres) =>
     setPreferences(prev => ({ ...prev, genres }));
-  };
 
-  const handleArtistSelect = (artists) => {
+  const handleArtistSelect = (artists) =>
     setPreferences(prev => ({ ...prev, artists }));
-  };
 
-  const handleDecadeSelect = (decades) => {
+  const handleDecadeSelect = (decades) =>
     setPreferences(prev => ({ ...prev, decades }));
-  };
 
-  const handlePopularityChange = (popularity) => {
+  const handlePopularityChange = (popularity) =>
     setPreferences(prev => ({ ...prev, popularity }));
-  };
 
-  // ===== GENERAR PLAYLIST =====
-  const handleGeneratePlaylist = async () => {
+  // ===== GENERAR / REFRESCAR PLAYLIST =====
+  const generate = async ({ append = false } = {}) => {
     if (!preferences.genres.length) {
       setError('Selecciona al menos un género');
       return;
@@ -81,22 +101,29 @@ export default function DashboardPage() {
 
     setGenerating(true);
     setError(null);
-    setResult(null);
 
     try {
       const { generatePlaylist } = await import('../../lib/spotify');
 
-      const result = await generatePlaylist({
+      const res = await generatePlaylist({
         ...preferences,
         userId: user.id
       });
 
-      setResult(result);
+      if (res.success && res.playlist?.tracks) {
+        setResult(res);
 
-      if (result.success && result.playlist?.url) {
-        window.open(result.playlist.url, '_blank');
+        setPreviewTracks(prev =>
+          append
+            ? [...prev, ...res.playlist.tracks]
+            : res.playlist.tracks
+        );
+
+        if (!append && res.playlist?.url) {
+          window.open(res.playlist.url, '_blank');
+        }
       }
-    } catch (err) {
+    } catch {
       setError('Error creando la playlist');
     } finally {
       setGenerating(false);
@@ -123,16 +150,13 @@ export default function DashboardPage() {
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
 
-          {/* ===== COLUMNA IZQUIERDA ===== */}
+          {/* IZQUIERDA */}
           <div className="lg:col-span-2 space-y-6">
-
-            {/* Géneros (ya lo tenías) */}
             <GenreWidgets
               selectedGenres={preferences.genres}
               onSelect={handleGenreSelect}
             />
 
-            {/* NUEVOS WIDGETS */}
             <ArtistWidget
               selectedArtists={preferences.artists}
               onSelect={handleArtistSelect}
@@ -148,14 +172,13 @@ export default function DashboardPage() {
               onChange={handlePopularityChange}
             />
 
-            {/* Nombre y descripción */}
             <div className="bg-gray-800 p-6 rounded-xl">
               <input
                 className="w-full p-3 mb-3 bg-gray-900 rounded"
                 value={preferences.playlistName}
                 onChange={e =>
-                  setPreferences(prev => ({
-                    ...prev,
+                  setPreferences(p => ({
+                    ...p,
                     playlistName: e.target.value
                   }))
                 }
@@ -167,8 +190,8 @@ export default function DashboardPage() {
                 placeholder="Descripción opcional"
                 value={preferences.playlistDescription}
                 onChange={e =>
-                  setPreferences(prev => ({
-                    ...prev,
+                  setPreferences(p => ({
+                    ...p,
                     playlistDescription: e.target.value
                   }))
                 }
@@ -176,19 +199,74 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          {/* ===== COLUMNA DERECHA ===== */}
+          {/* DERECHA */}
           <div>
-            <div className="bg-gray-800 p-6 rounded-xl sticky top-6">
+            <div className="bg-gray-800 p-6 rounded-xl sticky top-6 space-y-4">
               <button
-                onClick={handleGeneratePlaylist}
+                onClick={() => generate({ append: false })}
                 disabled={generating}
                 className="w-full bg-green-500 py-3 rounded font-bold"
               >
-                {generating ? 'Creando...' : '🎵 Generar Playlist'}
+                {generating ? 'Creando...' : 'Generar playlist'}
+              </button>
+
+              <button
+                onClick={() => generate({ append: true })}
+                disabled={generating || previewTracks.length === 0}
+                className="w-full bg-blue-500 py-2 rounded font-semibold"
+              >
+                Añadir más canciones
+              </button>
+
+              <button
+                onClick={() => generate({ append: false })}
+                disabled={generating || previewTracks.length === 0}
+                className="w-full bg-gray-600 py-2 rounded"
+              >
+                Refrescar playlist
               </button>
 
               {error && (
-                <p className="text-red-400 mt-4">{error}</p>
+                <p className="text-red-400">{error}</p>
+              )}
+
+              {previewTracks.length > 0 && (
+                <div className="mt-4">
+                  <h3 className="font-bold mb-2">
+                    Preview de la playlist
+                  </h3>
+
+                  <ul className="space-y-2 max-h-64 overflow-y-auto">
+                    {previewTracks.map(track => {
+                      const isFav = favoriteTracks.includes(track.id);
+
+                      return (
+                        <li
+                          key={track.id}
+                          className="flex justify-between items-center bg-gray-700 p-3 rounded"
+                        >
+                          <div>
+                            <p className="font-medium">{track.name}</p>
+                            <p className="text-sm text-gray-400">
+                              {track.artists.join(', ')}
+                            </p>
+                          </div>
+
+                          <button
+                            onClick={() => toggleFavoriteTrack(track.id)}
+                            className={`px-3 py-1 rounded text-sm ${
+                              isFav
+                                ? 'bg-yellow-400 text-black'
+                                : 'bg-gray-600 text-white'
+                            }`}
+                          >
+                            {isFav ? 'Favorito' : 'Marcar'}
+                          </button>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </div>
               )}
             </div>
           </div>

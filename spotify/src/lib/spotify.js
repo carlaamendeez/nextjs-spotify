@@ -1,12 +1,18 @@
-// En src/lib/spotify.js
 export async function generatePlaylist(preferences) {
-  const { artists, genres, decades, popularity, playlistName = "Mi Playlist Generada", playlistDescription = "" } = preferences;
-  
+  const {
+    artists,
+    genres,
+    decades,
+    popularity,
+    playlistName = "Mi Playlist Generada",
+    playlistDescription = ""
+  } = preferences;
+
   let token;
   if (typeof window !== 'undefined') {
     token = localStorage.getItem('spotify_access_token');
   }
-  
+
   if (!token) {
     throw new Error('No hay token de acceso. Inicia sesión nuevamente.');
   }
@@ -18,7 +24,7 @@ export async function generatePlaylist(preferences) {
       const tracks = await fetch(
         `https://api.spotify.com/v1/artists/${artist.id}/top-tracks?market=US`,
         {
-          headers: { 'Authorization': `Bearer ${token}` }
+          headers: { Authorization: `Bearer ${token}` }
         }
       );
       const data = await tracks.json();
@@ -31,9 +37,9 @@ export async function generatePlaylist(preferences) {
   for (const genre of genres) {
     try {
       const results = await fetch(
-        `https://api.spotify.com/v1/search?type=track&q=genre:${genre}&limit=20`,
+        `https://api.spotify.com/v1/search?type=track&q=genre:${genre}&limit=50`,
         {
-          headers: { 'Authorization': `Bearer ${token}` }
+          headers: { Authorization: `Bearer ${token}` }
         }
       );
       const data = await results.json();
@@ -47,8 +53,8 @@ export async function generatePlaylist(preferences) {
     allTracks = allTracks.filter(track => {
       const year = new Date(track.album.release_date).getFullYear();
       return decades.some(decade => {
-        const decadeStart = parseInt(decade);
-        return year >= decadeStart && year < decadeStart + 10;
+        const start = parseInt(decade);
+        return year >= start && year < start + 10;
       });
     });
   }
@@ -60,18 +66,23 @@ export async function generatePlaylist(preferences) {
     );
   }
 
+  const MAX_TRACKS = 120; 
+
   const uniqueTracks = Array.from(
     new Map(allTracks.map(track => [track.id, track])).values()
-  ).slice(0, 50);
+  ).slice(0, MAX_TRACKS);
 
   if (uniqueTracks.length === 0) {
     throw new Error("No se encontraron canciones con los criterios seleccionados");
   }
 
   try {
-    const userResponse = await fetch('https://api.spotify.com/v1/me', {
-      headers: { 'Authorization': `Bearer ${token}` }
-    });
+    const userResponse = await fetch(
+      'https://api.spotify.com/v1/me',
+      {
+        headers: { Authorization: `Bearer ${token}` }
+      }
+    );
     const userData = await userResponse.json();
     const userId = userData.id;
 
@@ -80,12 +91,14 @@ export async function generatePlaylist(preferences) {
       {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${token}`,
+          Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
           name: playlistName,
-          description: playlistDescription || `Playlist generada con: ${artists.map(a => a.name).join(', ')} ${genres.join(', ')}`,
+          description:
+            playlistDescription ||
+            `Playlist generada con ${artists.map(a => a.name).join(', ')} ${genres.join(', ')}`,
           public: false
         })
       }
@@ -93,36 +106,30 @@ export async function generatePlaylist(preferences) {
 
     if (!createPlaylistResponse.ok) {
       const errorData = await createPlaylistResponse.json();
-      throw new Error(`Error creando playlist: ${errorData.error?.message || 'Error desconocido'}`);
+      throw new Error(
+        errorData.error?.message || 'Error creando playlist'
+      );
     }
 
     const playlist = await createPlaylistResponse.json();
 
     const trackUris = uniqueTracks.map(track => track.uri);
-    
     const chunkSize = 100;
+
     for (let i = 0; i < trackUris.length; i += chunkSize) {
       const chunk = trackUris.slice(i, i + chunkSize);
-      
-      const addTracksResponse = await fetch(
+
+      await fetch(
         `https://api.spotify.com/v1/playlists/${playlist.id}/tracks`,
         {
           method: 'POST',
           headers: {
-            'Authorization': `Bearer ${token}`,
+            Authorization: `Bearer ${token}`,
             'Content-Type': 'application/json'
           },
-          body: JSON.stringify({
-            uris: chunk,
-            position: i
-          })
+          body: JSON.stringify({ uris: chunk })
         }
       );
-
-      if (!addTracksResponse.ok) {
-        const errorData = await addTracksResponse.json();
-        console.error(`Error añadiendo canciones: ${errorData.error?.message || 'Error desconocido'}`);
-      }
     }
 
     return {
@@ -137,7 +144,7 @@ export async function generatePlaylist(preferences) {
         tracks: uniqueTracks.map(track => ({
           id: track.id,
           name: track.name,
-          artists: track.artists.map(artist => artist.name),
+          artists: track.artists.map(a => a.name),
           album: track.album.name,
           uri: track.uri
         }))
