@@ -1,5 +1,3 @@
-// src/app/api/refresh-token/route.js
-
 export async function POST(request) {
   try {
     const { refresh_token } = await request.json();

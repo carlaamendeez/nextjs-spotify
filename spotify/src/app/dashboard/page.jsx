@@ -31,7 +31,6 @@ export default function DashboardPage() {
 
   const router = useRouter();
 
-  // ===== USUARIO =====
   useEffect(() => {
     const fetchUser = async () => {
       const token = localStorage.getItem('spotify_access_token');
@@ -56,7 +55,6 @@ export default function DashboardPage() {
     fetchUser();
   }, [router]);
 
-  // ===== FAVORITOS (localStorage) =====
   useEffect(() => {
     const stored = JSON.parse(
       localStorage.getItem('favorite_tracks')
@@ -79,7 +77,12 @@ export default function DashboardPage() {
     });
   };
 
-  // ===== HANDLERS =====
+  const removeTrack = (trackId) => {
+    setPreviewTracks(prev =>
+      prev.filter(track => track.id !== trackId)
+    );
+  };
+
   const handleGenreSelect = (genres) =>
     setPreferences(prev => ({ ...prev, genres }));
 
@@ -92,7 +95,6 @@ export default function DashboardPage() {
   const handlePopularityChange = (popularity) =>
     setPreferences(prev => ({ ...prev, popularity }));
 
-  // ===== GENERAR / REFRESCAR PLAYLIST =====
   const generate = async ({ append = false } = {}) => {
     if (!preferences.genres.length) {
       setError('Selecciona al menos un género');
@@ -138,7 +140,6 @@ export default function DashboardPage() {
     );
   }
 
-  // ===== UI =====
   return (
     <div className="min-h-screen bg-gray-900 text-white">
       <Header user={user} />
@@ -243,25 +244,34 @@ export default function DashboardPage() {
                       return (
                         <li
                           key={track.id}
-                          className="flex justify-between items-center bg-gray-700 p-3 rounded"
+                          className="flex justify-between items-center bg-gray-700 p-3 rounded gap-3"
                         >
-                          <div>
+                          <div className="flex-1">
                             <p className="font-medium">{track.name}</p>
                             <p className="text-sm text-gray-400">
                               {track.artists.join(', ')}
                             </p>
                           </div>
 
-                          <button
-                            onClick={() => toggleFavoriteTrack(track.id)}
-                            className={`px-3 py-1 rounded text-sm ${
-                              isFav
-                                ? 'bg-yellow-400 text-black'
-                                : 'bg-gray-600 text-white'
-                            }`}
-                          >
-                            {isFav ? 'Favorito' : 'Marcar'}
-                          </button>
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => toggleFavoriteTrack(track.id)}
+                              className={`px-3 py-1 rounded text-sm ${
+                                isFav
+                                  ? 'bg-yellow-400 text-black'
+                                  : 'bg-gray-600 text-white'
+                              }`}
+                            >
+                              {isFav ? 'Favorito' : 'Marcar'}
+                            </button>
+
+                            <button
+                              onClick={() => removeTrack(track.id)}
+                              className="px-3 py-1 rounded text-sm bg-red-500 text-white"
+                            >
+                              Eliminar
+                            </button>
+                          </div>
                         </li>
                       );
                     })}
